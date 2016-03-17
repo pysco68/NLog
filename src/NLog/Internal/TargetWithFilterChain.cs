@@ -31,6 +31,8 @@
 // THE POSSIBILITY OF SUCH DAMAGE.
 // 
 
+using System.Linq;
+
 namespace NLog.Internal
 {
     using System.Collections.Generic;
@@ -43,8 +45,8 @@ namespace NLog.Internal
     /// whether logging should happen.
     /// </summary>
     [NLogConfigurationItem]
-	internal class TargetWithFilterChain
-	{
+    internal class TargetWithFilterChain
+    {
         private StackTraceUsage stackTraceUsage = StackTraceUsage.None;
 
         /// <summary>
@@ -92,17 +94,21 @@ namespace NLog.Internal
 
             // find all objects which may need stack trace
             // and determine maximum
-            foreach (var item in ObjectGraphScanner.FindReachableObjects<IUsesStackTrace>(this))
+            // only the target can have IUsesStackTrace
+            if (Target != null)
             {
-                var stu = item.StackTraceUsage;
-
-                if (stu > this.stackTraceUsage)
+                foreach (var item in Target.GetAllLayouts().OfType<IUsesStackTrace>())
                 {
-                    this.stackTraceUsage = stu;
+                    var stu = item.StackTraceUsage;
 
-                    if (this.stackTraceUsage >= StackTraceUsage.Max)
+                    if (stu > this.stackTraceUsage)
                     {
-                        break;
+                        this.stackTraceUsage = stu;
+
+                        if (this.stackTraceUsage >= StackTraceUsage.Max)
+                        {
+                            break;
+                        }
                     }
                 }
             }
